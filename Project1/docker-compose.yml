@@ -1,0 +1,73 @@
+services:
+
+  namenode:
+    image: apache/hadoop:3
+    hostname: namenode
+    command: ["hdfs", "namenode"]
+    ports:
+      - "9870:9870"
+    environment:
+      HADOOP_CONF_DIR: /opt/hadoop/etc/hadoop
+      CORE-SITE.XML_fs.defaultFS: hdfs://namenode:8020
+      CORE-SITE.XML_fs.trash.interval: "360"
+      HDFS-SITE.XML_dfs.namenode.rpc-address: namenode:8020
+      HDFS-SITE.XML_dfs.namenode.name.dir: /tmp/hadoop-hadoop/dfs/name
+      HDFS-SITE.XML_dfs.replication: "1"
+      HDFS-SITE.XML_dfs.permissions.enabled: "false"
+      ENSURE_NAMENODE_DIR: /tmp/hadoop-hadoop/dfs/name
+    volumes:
+      - ./books:/books
+      - ./src:/src
+    networks:
+      - hadoop-net
+
+  datanode1:
+    image: apache/hadoop:3
+    hostname: datanode1
+    command: ["hdfs", "datanode"]
+    environment:
+      CORE-SITE.XML_fs.defaultFS: hdfs://namenode:8020
+      HDFS-SITE.XML_dfs.namenode.rpc-address: namenode:8020
+      HDFS-SITE.XML_dfs.datanode.data.dir: /tmp/hadoop-hadoop/dfs/data
+      HDFS-SITE.XML_dfs.replication: "1"
+      HDFS-SITE.XML_dfs.permissions.enabled: "false"
+    depends_on:
+      - namenode
+    networks:
+      - hadoop-net
+
+  resourcemanager:
+    image: apache/hadoop:3
+    hostname: resourcemanager
+    command: ["yarn", "resourcemanager"]
+    ports:
+      - "8088:8088"
+    environment:
+      CORE-SITE.XML_fs.defaultFS: hdfs://namenode:8020
+      YARN-SITE.XML_yarn.resourcemanager.hostname: resourcemanager
+      YARN-SITE.XML_yarn.nodemanager.aux-services: mapreduce_shuffle
+      MAPRED-SITE.XML_mapreduce.framework.name: yarn
+      MAPRED-SITE.XML_mapreduce.map.memory.mb: "512"
+      MAPRED-SITE.XML_mapreduce.reduce.memory.mb: "512"
+    depends_on:
+      - namenode
+    networks:
+      - hadoop-net
+
+  nodemanager:
+    image: apache/hadoop:3
+    hostname: nodemanager
+    command: ["yarn", "nodemanager"]
+    environment:
+      CORE-SITE.XML_fs.defaultFS: hdfs://namenode:8020
+      YARN-SITE.XML_yarn.resourcemanager.hostname: resourcemanager
+      YARN-SITE.XML_yarn.nodemanager.aux-services: mapreduce_shuffle
+      MAPRED-SITE.XML_mapreduce.framework.name: yarn
+    depends_on:
+      - resourcemanager
+    networks:
+      - hadoop-net
+
+networks:
+  hadoop-net:
+    driver: bridge
