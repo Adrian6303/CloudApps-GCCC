@@ -48,11 +48,21 @@ public class InvertedIndex {
             // Increment line number for every line read
             lineNumber++;
 
-            StringTokenizer tokenizer = new StringTokenizer(
-                    value.toString(), " \t\r\n\f\"',.:;!?()[]{}#$*-_+/\\<>@%&=~`^|0123456789");
+            // Tokenize on whitespace then trim punctuation from the token edges.
+            // This ensures leading/trailing quotes, apostrophes, em-dashes, etc.
+            // are removed while preserving internal characters (e.g. don't).
+            StringTokenizer tokenizer = new StringTokenizer(value.toString());
 
             while (tokenizer.hasMoreTokens()) {
-                String token = tokenizer.nextToken().toLowerCase().trim();
+                String raw = tokenizer.nextToken();
+                String token = raw.toLowerCase().trim();
+
+                // Trim non-letter characters from the start and end of the token.
+                int s = 0, e = token.length() - 1;
+                while (s <= e && !Character.isLetter(token.charAt(s))) s++;
+                while (e >= s && !Character.isLetter(token.charAt(e))) e--;
+                if (s > e) continue;
+                token = token.substring(s, e + 1);
 
                 if (token.isEmpty())           continue;
                 if (token.length() < 2)        continue;
